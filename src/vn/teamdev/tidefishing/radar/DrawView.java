@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import vn.teamdev.tidefishing.entity.Circle;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -21,11 +20,11 @@ import android.widget.ImageView;
 public class DrawView extends ImageView {
 
 	private static final String TAG = "DrawView";
-	public Paint inner_rect_paint, line_paint, outer_rect_paint, text_paint;
+	public Paint line_paint, fill_paint, text_paint;
 	private int width, height;
 	private Point x = new Point(0, 0);
 	private Point center = new Point(0, 0);
-	private List<Circle> listCircles = new ArrayList<Circle>();
+//	private List<Circle> listCircles = new ArrayList<Circle>();
 	private List<Point> listLines = new ArrayList<Point>();
 	private int textSize = 14;
 
@@ -48,18 +47,9 @@ public class DrawView extends ImageView {
 	}
 
 	protected void initParams() {
-		inner_rect_paint = new Paint();
-		inner_rect_paint.setAntiAlias(true);
-		inner_rect_paint.setDither(true);
-		inner_rect_paint.setColor(Color.parseColor("#303f9f"));
-		inner_rect_paint.setStyle(Paint.Style.STROKE);
-		inner_rect_paint.setStrokeJoin(Paint.Join.ROUND);
-		inner_rect_paint.setStrokeCap(Paint.Cap.ROUND);
-		inner_rect_paint.setStrokeWidth(2);
-
-		outer_rect_paint = new Paint();
-		outer_rect_paint.setColor(Color.BLACK);
-		outer_rect_paint.setAlpha(80);
+		fill_paint = new Paint();
+		fill_paint.setColor(Color.CYAN);
+		fill_paint.setAlpha(255);
 
 		line_paint = new Paint();
 		line_paint.setAntiAlias(true);
@@ -88,8 +78,8 @@ public class DrawView extends ImageView {
 		for (int i = 2; i <= 7; i++) {
 			Log.i(TAG, (segment * i) + "SIZE");
 			canvas.drawCircle(center.x, center.y, segment * i, line_paint);
-			Circle circle = new Circle(center.x, center.y, segment * i);
-			listCircles.add(circle);
+//			Circle circle = new Circle(center.x, center.y, segment * i);
+//			listCircles.add(circle);
 		}
 
 		// Draw line
@@ -118,14 +108,6 @@ public class DrawView extends ImageView {
 			point.y = (int) (y0 - r * Math.cos(angle));
 			listPoint.add(point);
 		}
-//		Collections.sort(listPoint, new Comparator<Point>() {
-//
-//			public int compare(Point o1, Point o2) {
-//				if ( o1.y <= o2.y)
-//					return -1;
-//				return 1;
-//			}
-//		});
 		return listPoint;
 	}
 
