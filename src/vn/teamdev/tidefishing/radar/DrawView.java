@@ -1,140 +1,146 @@
 package vn.teamdev.tidefishing.radar;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Paint.Style;
+import android.graphics.Path;
 import android.graphics.Point;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.MotionEvent;
-import android.widget.ImageView;
+import android.view.View;
 
-public class DrawView extends ImageView {
+public class DrawView extends View {
 
-	private static final String TAG = "DrawView";
-	public Paint line_paint, fill_paint, text_paint;
-	private int width, height;
-	private Point x = new Point(0, 0);
-	private Point center = new Point(0, 0);
-//	private List<Circle> listCircles = new ArrayList<Circle>();
-	private List<Point> listLines = new ArrayList<Point>();
-	private int textSize = 14;
+    private Paint circlePaint;
+    private int scrWidth = 0, scrHeight = 0;
+    private int padding = 100;
+    private int nPart = 5;
+    private int nArc = 12;
+    private int nArcSplit = 24;
+    private float[] listRadiusCicle = new float[nPart];
+    private List<List<Point>> listIntersectPoint = new ArrayList<List<Point>>();
 
-	public DrawView(Context context) {
-		super(context);
-		setFocusable(true);
-		initParams();
-	}
+    public DrawView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        initParams();
+    }
 
-	public DrawView(Context context, AttributeSet attrs, int defStyle) {
-		super(context, attrs, defStyle);
-		setFocusable(true);
-		initParams();
-	}
+    public DrawView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        initParams();
+    }
 
-	public DrawView(Context context, AttributeSet attrs) {
-		super(context, attrs);
-		setFocusable(true);
-		initParams();
-	}
+    public DrawView(Context context) {
+        super(context);
+        initParams();
+    }
 
-	protected void initParams() {
-		fill_paint = new Paint();
-		fill_paint.setColor(Color.CYAN);
-		fill_paint.setAlpha(255);
+    private void initParams() {
+        Log.i("DRAW", "initParams");
+        this.setWillNotDraw(false);
+        circlePaint = new Paint();
+        circlePaint.setColor(Color.RED);
+        circlePaint.setStrokeWidth(2);
+    }
 
-		line_paint = new Paint();
-		line_paint.setAntiAlias(true);
-		line_paint.setStrokeWidth(2);
-		line_paint.setStyle(Paint.Style.STROKE);
-		line_paint.setColor(Color.BLUE);
+    private void drawPoly(Canvas canvas, int color, Point[] points) {
+        // line at minimum...
+        if (points.length < 2) {
+            return;
+        }
 
-		text_paint = new Paint();
-		text_paint.setAntiAlias(true);
-		text_paint.setStrokeWidth(1);
-		text_paint.setColor(Color.RED);
-		text_paint.setTextSize(textSize);
-	}
+        // paint
+        Paint polyPaint = new Paint();
+        polyPaint.setColor(color);
+        polyPaint.setStyle(Style.FILL);
+        polyPaint.setStrokeWidth(5);
 
-	@Override
-	protected void onDraw(Canvas canvas) {
-		super.onDraw(canvas);
-		width = getWidth();
-		height = getHeight();
-		center.x = width / 2;
-		center.y = height / 2;
-		Log.i(TAG, width + " - " + height);
+        // path
+        Path polyPath = new Path();
+        polyPath.moveTo(points[0].x, points[0].y);
+        int i, len;
+        len = points.length;
+        for (i = 0; i < len; i++) {
+            polyPath.lineTo(points[i].x, points[i].y);
+        }
+        polyPath.lineTo(points[0].x, points[0].y);
 
-		// Draw cicle
-		int segment = width / 16;
-		for (int i = 2; i <= 7; i++) {
-			Log.i(TAG, (segment * i) + "SIZE");
-			canvas.drawCircle(center.x, center.y, segment * i, line_paint);
-//			Circle circle = new Circle(center.x, center.y, segment * i);
-//			listCircles.add(circle);
-		}
+        // draw
+        canvas.drawPath(polyPath, polyPaint);
+    }
 
-		// Draw line
-		listLines = calculateListPoint(segment * 7, center.x, center.y, 24);
-		List<Point> listCoorText = calculateListPoint((float) (segment * 7.5),
-				center.x, center.y, 24);
-		int i = 0;
-		for (Point p : listLines) {
-			Log.i(TAG, p.toString());
-			canvas.drawText(String.valueOf(i), listCoorText.get(i).x - textSize
-					/ 2, listCoorText.get(i).y + textSize / 2, text_paint);
-			canvas.drawLine(center.x, center.y, p.x, p.y, line_paint);
-			i++;
-		}
+    private void calculatePoint() {
+        Log.i("DRAW", "calculatePoint");
+        calculateRadiusCirlce(nPart, padding);
+        for (int i = 0; i < nPart; i++) {
+            List<Point> spittedPoint = calculateIntersectPoint(nArcSplit,
+                    scrWidth / 2, scrHeight / 2, listRadiusCicle[i]);
+            listIntersectPoint.add(spittedPoint);
+        }
+    }
 
-		canvas.drawPoint(x.x, x.y, line_paint);
-	}
+    private void calculateRadiusCirlce(int num, int padding) {
+        int width = scrWidth - padding;
+        float partSize = (float) width / (float) num;
+        for (int i = 0; i < num; i++) {
+            listRadiusCicle[i] = ((i + 1) * partSize) / 2;
+        }
+    }
 
-	private ArrayList<Point> calculateListPoint(float r, float x0, float y0,
-			int count) {
-		ArrayList<Point> listPoint = new ArrayList<Point>();
-		for (int i = 0; i < count; i++) {
-			double angle = i * (2 * Math.PI / count);
-			Point point = new Point();
-			point.x = (int) (x0 + r * Math.sin(angle));
-			point.y = (int) (y0 - r * Math.cos(angle));
-			listPoint.add(point);
-		}
-		return listPoint;
-	}
+    private List<Point> calculateIntersectPoint(int count, int x0, int y0, float r) {
+        ArrayList<Point> listPoint = new ArrayList<Point>();
+        for (int i = 0; i < count; i++) {
+            double angle = i * (2 * Math.PI / count);
+            Point point = new Point();
+            point.x = (int) (x0 + r * Math.sin(angle));
+            point.y = (int) (y0 - r * Math.cos(angle));
+            listPoint.add(point);
+        }
+        return listPoint;
+    }
 
-	@SuppressLint("ClickableViewAccessibility")
-	@Override
-	public boolean onTouchEvent(MotionEvent event) {
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        if (w < h) {
+            this.scrWidth = w;
+            this.scrHeight = h;
+        } else {
+            this.scrWidth = h;
+            this.scrHeight = w;
+        }
+        Log.i("DRAW", scrWidth + "--" + scrHeight);
+        calculatePoint();
+        super.onSizeChanged(w, h, oldw, oldh);
+    }
 
-		int X = (int) event.getX();
-		int Y = (int) event.getY();
-		Log.i(TAG, String.format("Touch at coordinates: X=%d, Y=%d", X, Y));
-
-		switch (event.getAction()) {
-
-		case MotionEvent.ACTION_DOWN:
-			break;
-
-		case MotionEvent.ACTION_MOVE:
-			x.x = X;
-			x.y = Y;
-			break;
-
-		case MotionEvent.ACTION_UP:
-			break;
-		}
-
-		invalidate();
-		return true;
-
-	}
+    @Override
+    protected void onDraw(Canvas canvas) {
+        Log.i("DRAW", "onDraw");
+        for (List<Point> list : listIntersectPoint) {
+            for (int i = 0; i < list.size(); i++) {
+                Point p = list.get(i);
+                canvas.drawPoint(p.x, p.y, circlePaint);
+                if (i < list.size() - 1) {
+                    Point pNext = list.get(i + 1);
+                    canvas.drawLine(p.x, p.y, pNext.x, pNext.y, circlePaint);
+                } else {
+                    Point pFirst = list.get(0);
+                    Point pLast = list.get(list.size() - 1);
+                    canvas.drawLine(pFirst.x, pFirst.y, pLast.x, pLast.y,
+                            circlePaint);
+                }
+            }
+        }
+        List<Point> lastList = listIntersectPoint
+                .get(listIntersectPoint.size() - 1);
+        for (Point p : lastList) {
+            canvas.drawLine(scrWidth / 2, scrHeight / 2, p.x, p.y, circlePaint);
+        }
+        super.onDraw(canvas);
+    }
 }
